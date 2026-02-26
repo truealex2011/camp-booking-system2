@@ -41,8 +41,12 @@ def create_app(config_name=None):
         os.makedirs('/tmp', exist_ok=True)
         db.create_all()
         
+        # Seed default admin user if none exist
+        from app.models import AdminUser, Service
+        if AdminUser.query.count() == 0:
+            _seed_default_admin()
+        
         # Seed default services if none exist
-        from app.models import Service
         if Service.query.count() == 0:
             _seed_default_services()
     
@@ -114,6 +118,21 @@ def _seed_default_services():
     
     db.session.commit()
     print("✓ Default services created")
+
+
+def _seed_default_admin():
+    """Seed default admin user into database."""
+    from app.models import AdminUser
+    from app.services.auth_service import AuthService
+    
+    admin_exists = AdminUser.query.filter_by(username='admin').first()
+    
+    if not admin_exists:
+        admin = AuthService.create_admin('admin', 'admin123')
+        if admin:
+            print("✓ Default admin user created: admin / admin123")
+    else:
+        print("✓ Admin user already exists")
 
 
 def register_error_handlers(app):
