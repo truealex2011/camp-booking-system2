@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Админ-панель{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <div class="admin-layout">
+        <aside class="admin-sidebar">
+            <div class="admin-logo">
+                <h2>Админ-панель</h2>
+                <p>Лагерь Таежный</p>
+            </div>
+            
+            <nav class="admin-nav">
+                <a href="{{ url_for('admin.dashboard') }}" class="nav-item">
+                    <span class="icon">📊</span>
+                    Главная
+                </a>
+                <a href="{{ url_for('admin.bookings') }}" class="nav-item">
+                    <span class="icon">📅</span>
+                    Бронирования
+                </a>
+                <a href="{{ url_for('admin.services') }}" class="nav-item">
+                    <span class="icon">⚙️</span>
+                    Услуги
+                </a>
+                <a href="{{ url_for('admin.statistics') }}" class="nav-item">
+                    <span class="icon">📈</span>
+                    Статистика
+                </a>
+                <a href="{{ url_for('admin.print_schedule') }}" class="nav-item">
+                    <span class="icon">🖨️</span>
+                    Печать расписания
+                </a>
+                <a href="{{ url_for('public.index') }}" class="nav-item nav-public">
+                    <span class="icon">🏠</span>
+                    На главную сайта
+                </a>
+                <a href="{{ url_for('admin.logout') }}" class="nav-item logout">
+                    <span class="icon">🚪</span>
+                    Выход
+                </a>
+            </nav>
+        </aside>
+        
+        <main class="admin-content">
+            <div class="admin-header">
+                <h1>{% block page_title %}Админ-панель{% endblock %}</h1>
+            </div>
+            
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="flash-messages">
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }}">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+            
+            <div class="admin-body">
+                {% block content %}{% endblock %}
+            </div>
+        </main>
+    </div>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

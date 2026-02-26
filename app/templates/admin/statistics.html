@@ -1,0 +1,226 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Статистика - Админ-панель{% endblock %}
+{% block page_title %}Статистика и отчеты{% endblock %}
+
+{% block content %}
+<div class="filters-panel">
+    <form method="GET" action="{{ url_for('admin.statistics') }}" class="filters-form">
+        <div class="filter-group">
+            <label for="start_date">Дата начала</label>
+            <input type="date" id="start_date" name="start_date" value="{{ start_date.strftime('%Y-%m-%d') if start_date else '' }}">
+        </div>
+        
+        <div class="filter-group">
+            <label for="end_date">Дата окончания</label>
+            <input type="date" id="end_date" name="end_date" value="{{ end_date.strftime('%Y-%m-%d') if end_date else '' }}">
+        </div>
+        
+        <div class="filter-actions">
+            <button type="submit" class="btn btn-primary">Применить</button>
+            <a href="{{ url_for('admin.statistics') }}" class="btn btn-secondary">Сбросить</a>
+        </div>
+    </form>
+</div>
+
+<div class="stats-overview">
+    <div class="stat-card-large">
+        <h3>Общее количество записей</h3>
+        <p class="stat-number-large">{{ stats.total }}</p>
+        {% if start_date and end_date %}
+        <p class="stat-period">За период: {{ start_date.strftime('%d.%m.%Y') }} - {{ end_date.strftime('%d.%m.%Y') }}</p>
+        {% elif start_date %}
+        <p class="stat-period">С {{ start_date.strftime('%d.%m.%Y') }}</p>
+        {% elif end_date %}
+        <p class="stat-period">До {{ end_date.strftime('%d.%m.%Y') }}</p>
+        {% else %}
+        <p class="stat-period">За все время</p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="stats-grid">
+    <div class="stats-section">
+        <h2>Записи по услугам</h2>
+        <div class="chart-container">
+            {% for service, count in stats.by_service.items() %}
+            <div class="chart-bar">
+                <div class="bar-label">{{ service }}</div>
+                <div class="bar-wrapper">
+                    <div class="bar-fill" style="width: {{ (count / stats.total * 100) if stats.total > 0 else 0 }}%">
+                        <span class="bar-value">{{ count }}</span>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        {% if not stats.by_service %}
+        <p class="empty-message">Нет данных</p>
+        {% endif %}
+    </div>
+    
+    <div class="stats-section">
+        <h2>Записи по лагерям</h2>
+        <div class="chart-container">
+            {% for camp, count in stats.by_camp.items() %}
+            <div class="chart-bar">
+                <div class="bar-label">{{ camp }}</div>
+                <div class="bar-wrapper">
+                    <div class="bar-fill" style="width: {{ (count / stats.total * 100) if stats.total > 0 else 0 }}%">
+                        <span class="bar-value">{{ count }}</span>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        {% if not stats.by_camp %}
+        <p class="empty-message">Нет данных</p>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+.filters-panel {
+    background: white;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    margin-bottom: 30px;
+}
+
+.filters-form {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    align-items: end;
+}
+
+.filter-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+}
+
+.filter-group input {
+    width: 100%;
+    padding: 10px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+}
+
+.filter-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.stats-overview {
+    margin-bottom: 30px;
+}
+
+.stat-card-large {
+    background: linear-gradient(135deg, #1565C0 0%, #1E3A8A 100%);
+    color: white;
+    padding: 40px;
+    border-radius: 12px;
+    text-align: center;
+    box-shadow: 0 4px 20px rgba(21, 101, 192, 0.3);
+}
+
+.stat-card-large h3 {
+    font-size: 18px;
+    margin-bottom: 20px;
+    opacity: 0.9;
+}
+
+.stat-number-large {
+    font-size: 72px;
+    font-weight: bold;
+    margin: 20px 0;
+}
+
+.stat-period {
+    font-size: 16px;
+    opacity: 0.8;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 30px;
+}
+
+.stats-section {
+    background: white;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.stats-section h2 {
+    color: #1565C0;
+    margin-bottom: 30px;
+    font-size: 20px;
+}
+
+.chart-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.chart-bar {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.bar-label {
+    font-weight: 600;
+    color: #333;
+    font-size: 14px;
+}
+
+.bar-wrapper {
+    background: #f0f0f0;
+    border-radius: 8px;
+    height: 40px;
+    position: relative;
+    overflow: hidden;
+}
+
+.bar-fill {
+    background: linear-gradient(90deg, #FB8C00 0%, #F57C00 100%);
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 15px;
+    transition: width 0.5s ease;
+    min-width: 50px;
+}
+
+.bar-value {
+    color: white;
+    font-weight: bold;
+    font-size: 16px;
+}
+
+.empty-message {
+    text-align: center;
+    color: #999;
+    padding: 40px 0;
+}
+
+@media (max-width: 768px) {
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .stat-number-large {
+        font-size: 48px;
+    }
+}
+</style>
+{% endblock %}

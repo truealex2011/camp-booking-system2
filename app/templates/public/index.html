@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}Выбор услуги - Лагерь Таежный{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2>Выберите услугу</h2>
+    <p>Пожалуйста, выберите услугу, на которую хотите записаться</p>
+</div>
+
+<div class="services-grid">
+    {% for service in services %}
+    <div class="service-card">
+        <h3>{{ service.name }}</h3>
+        {% if service.description %}
+        <p class="service-description">{{ service.description }}</p>
+        {% endif %}
+        <a href="{{ url_for('public.calendar', service_id=service.id) }}" class="btn btn-primary">
+            Выбрать
+        </a>
+    </div>
+    {% endfor %}
+</div>
+
+{% if not services %}
+<div class="empty-state">
+    <p>В данный момент нет доступных услуг для записи.</p>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+
+{% block title %}Подтверждение бронирования{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/push-notifications.js') }}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', async function() {
+    const bookingId = {{ booking.id }};
+    const vapidPublicKey = '{{ config.VAPID_PUBLIC_KEY }}';
+    
+    if (vapidPublicKey) {
+        // Show notification permission dialog with explanation
+        const notificationBox = document.createElement('div');
+        notificationBox.style.cssText = `
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #FFF3E0;
+            border: 2px solid #FB8C00;
+            border-radius: 12px;
+            padding: 20px 30px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 10000;
+            max-width: 500px;
+            text-align: center;
+        `;
+        notificationBox.innerHTML = `
+            <div style="font-size: 18px; font-weight: bold; color: #F57C00; margin-bottom: 10px;">
+                🔔 Разрешите уведомления
+            </div>
+            <div style="color: #666; margin-bottom: 15px; line-height: 1.5;">
+                Это необходимо, чтобы мы могли напомнить вам о предстоящей встрече за сутки!
+            </div>
+            <button id="enableNotifications" style="
+                background: #FB8C00;
+                color: white;
+                border: none;
+                padding: 12px 30px;
+                border-radius: 8px;
+                font-size: 16px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.3s;
+            ">
+                Разрешить уведомления
+            </button>
+            <button id="skipNotifications" style="
+                background: transparent;
+                color: #999;
+                border: none;
+                padding: 12px 20px;
+                font-size: 14px;
+                cursor: pointer;
+                margin-left: 10px;
+            ">
+                Пропустить
+            </button>
+        `;
+        document.body.appendChild(notificationBox);
+        
+        // Handle enable button
+        document.getElementById('enableNotifications').addEventListener('click', async function() {
+            this.disabled = true;
+            this.textContent = 'Подключение...';
+            
+            // Initialize push notifications
+            const initialized = await window.pushNotifications.init(vapidPublicKey);
+            
+            if (initialized) {
+                // Subscribe to push notifications for this booking
+                const subscribed = await window.pushNotifications.subscribeToPush(bookingId);
+                
+                if (subscribed) {
+                    notificationBox.innerHTML = `
+                        <div style="font-size: 18px; font-weight: bold; color: #4CAF50; margin-bottom: 10px;">
+                            ✓ Уведомления включены!
+                        </div>
+                        <div style="color: #666;">
+                            Мы напомним вам о встрече за сутки
+                        </div>
+                    `;
+                    setTimeout(() => notificationBox.remove(), 3000);
+                } else {
+                    notificationBox.remove();
+                }
+            } else {
+                notificationBox.remove();
+            }
+        });
+        
+        // Handle skip button
+        document.getElementById('skipNotifications').addEventListener('click', function() {
+            notificationBox.remove();
+        });
+    }
+});
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="confirmation-container">
+    <div class="success-icon">✓</div>
+    
+    <h2>Ваша заявка принята!</h2>
+    
+    <div class="confirmation-details">
+        <p class="lead">Будем ждать вас по адресу:</p>
+        <p class="address"><strong>ул. Петра Ломако 4а</strong></p>
+        
+        <div class="required-documents highlighted">
+            <h3>⚠️ Необходимые документы</h3>
+            <ol>
+                {% for document in required_documents %}
+                <li>{{ document }}</li>
+                {% endfor %}
+            </ol>
+        </div>
+        
+        <div class="booking-info">
+            <h3>Детали бронирования</h3>
+            <p><strong>Номер бронирования:</strong> {{ booking.reference_number }}</p>
+            <p><strong>Услуга:</strong> {{ booking.service.name }}</p>
+            <p><strong>Дата:</strong> {{ booking.date.strftime('%d.%m.%Y') }}</p>
+            <p><strong>Время:</strong> {{ booking.time_slot }}</p>
+            <p><strong>Лагерь:</strong> {{ booking.camp }}</p>
+            <p><strong>ФИО:</strong> {{ booking.last_name }} {{ booking.first_name }}</p>
+            <p><strong>Телефон:</strong> {{ booking.phone }}</p>
+        </div>
+    </div>
+    
+    <a href="{{ url_for('public.index') }}" class="btn btn-primary">Вернуться на главную</a>
+    <a href="{{ url_for('public.notifications', phone=booking.phone) }}" class="btn btn-secondary">Мои уведомления</a>
+</div>
+
+<style>
+.confirmation-container { max-width: 700px; margin: 40px auto; text-align: center; padding: 40px; background: white; border-radius: 12px; box-shadow: 0 2px 20px rgba(0,0,0,0.1); }
+.success-icon { width: 80px; height: 80px; margin: 0 auto 20px; background: #4CAF50; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 48px; font-weight: bold; }
+.confirmation-container h2 { color: #4CAF50; margin-bottom: 30px; }
+.lead { font-size: 18px; color: #666; margin-bottom: 10px; }
+.address { font-size: 24px; color: #1565C0; margin-bottom: 30px; }
+.booking-info, .required-documents { text-align: left; margin: 30px 0; padding: 20px; background: #f9f9f9; border-radius: 8px; }
+.booking-info h3, .required-documents h3 { color: #1565C0; margin-bottom: 15px; }
+.booking-info p { margin: 10px 0; }
+.required-documents ol { margin-left: 20px; }
+.required-documents li { margin: 10px 0; line-height: 1.6; }
+.required-documents.highlighted { background: #FFF3E0; border: 3px solid #FB8C00; box-shadow: 0 4px 12px rgba(251, 140, 0, 0.2); }
+.required-documents.highlighted h3 { color: #F57C00; font-size: 20px; }
+.required-documents.highlighted li { font-weight: 500; color: #333; }
+.btn-secondary { background: #757575; margin-left: 10px; }
+
+@media (max-width: 768px) {
+    .confirmation-container { margin: 20px; padding: 20px; }
+    .address { font-size: 20px; }
+    .booking-info, .required-documents { padding: 15px; }
+}
+</style>
+{% endblock %}

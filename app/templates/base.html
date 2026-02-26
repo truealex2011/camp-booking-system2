@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Запись в лагерь Таежный{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <a href="{{ url_for('public.index') }}" class="logo-link">
+                    <h1>Лагерь «Таежный»</h1>
+                    <p class="subtitle">Онлайн-запись на услуги</p>
+                </a>
+            </div>
+            <div class="header-actions">
+                <a href="{{ url_for('public.index') }}" class="home-btn">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                        <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                    </svg>
+                    <span>Главная</span>
+                </a>
+                <a href="#" id="notificationsLink" class="admin-link" style="display: none; position: relative;">
+                    Уведомления
+                    <span id="notificationBadge" style="display: none; position: absolute; top: -8px; right: -8px; background: #f44336; color: white; border-radius: 50%; width: 20px; height: 20px; font-size: 12px; font-weight: bold; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.2);"></span>
+                </a>
+                <a href="{{ url_for('admin.login') }}" class="admin-link">Администратор</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-main">
+                    <p>&copy; 2026 МАОУ СШ 157. Все права защищены.</p>
+                </div>
+                <div class="footer-developer">
+                    <p class="developer-title">Разработчик:</p>
+                    <div class="developer-contacts">
+                        <a href="tel:+79135194045" class="contact-link">
+                            <span class="contact-icon">📱</span>
+                            +7 (913) 519-40-45
+                        </a>
+                        <a href="https://t.me/TrueAlex1" target="_blank" class="contact-link">
+                            <span class="contact-icon">💬</span>
+                            @TrueAlex1
+                        </a>
+                        <a href="mailto:TrueAlex2011@gmail.com" class="contact-link">
+                            <span class="contact-icon">✉️</span>
+                            TrueAlex2011@gmail.com
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Modal for phone number confirmation -->
+    <div id="phoneModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; align-items: center; justify-content: center;">
+        <div style="background: white; padding: 30px; border-radius: 12px; max-width: 400px; width: 90%; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+            <h3 style="color: #1565C0; margin-bottom: 20px; text-align: center;">Выберите номер телефона</h3>
+            <p style="color: #666; margin-bottom: 15px; text-align: center;">Для какого номера показать уведомления?</p>
+            <select id="phoneSelect" style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 16px; margin-bottom: 20px;">
+            </select>
+            <div style="display: flex; gap: 10px; flex-direction: column;">
+                <button id="confirmPhone" style="background: #FB8C00; color: white; border: none; padding: 12px; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer;">
+                    Показать уведомления
+                </button>
+                <button id="cancelModal" style="background: transparent; color: #999; border: none; padding: 8px; font-size: 14px; cursor: pointer;">
+                    Отмена
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // Show notifications link if user has saved phone numbers
+    document.addEventListener('DOMContentLoaded', function() {
+        const savedPhone = localStorage.getItem('userPhone');
+        const savedPhones = JSON.parse(localStorage.getItem('userPhones') || '[]');
+        const notificationsLink = document.getElementById('notificationsLink');
+        const notificationBadge = document.getElementById('notificationBadge');
+        const phoneModal = document.getElementById('phoneModal');
+        const phoneSelect = document.getElementById('phoneSelect');
+        
+        // Function to check for unread notifications
+        async function checkUnreadNotifications() {
+            if (!savedPhone) return;
+            
+            try {
+                const response = await fetch('/api/notifications/' + encodeURIComponent(savedPhone) + '/unread-count');
+                if (response.ok) {
+                    const data = await response.json();
+                    const count = data.count || 0;
+                    
+                    if (count > 0) {
+                        notificationBadge.textContent = count > 9 ? '9+' : count;
+                        notificationBadge.style.display = 'flex';
+                    } else {
+                        notificationBadge.style.display = 'none';
+                    }
+                }
+            } catch (error) {
+                console.error('Error checking notifications:', error);
+            }
+        }
+        
+        // Listen for messages from notification page
+        window.addEventListener('message', function(event) {
+            if (event.data && event.data.type === 'updateNotificationBadge') {
+                checkUnreadNotifications();
+            }
+        });
+        
+        // Update badge when page becomes visible (user returns to tab)
+        document.addEventListener('visibilitychange', function() {
+            if (!document.hidden) {
+                checkUnreadNotifications();
+            }
+        });
+        
+        // Update badge when window gains focus
+        window.addEventListener('focus', function() {
+            checkUnreadNotifications();
+        });
+        
+        // Listen for localStorage changes from notification page
+        window.addEventListener('storage', function(e) {
+            if (e.key === 'notificationBadgeUpdate' || e.key === 'notificationRead') {
+                checkUnreadNotifications();
+            }
+        });
+        
+        if (savedPhones.length > 0 && notificationsLink) {
+            notificationsLink.style.display = 'inline-block';
+            
+            // Check for unread notifications on page load
+            checkUnreadNotifications();
+            
+            // Check every 30 seconds
+            setInterval(checkUnreadNotifications, 30000);
+            
+            // Show modal on click
+            notificationsLink.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                // Populate select with saved phones
+                phoneSelect.innerHTML = '';
+                savedPhones.forEach(phone => {
+                    const option = document.createElement('option');
+                    option.value = phone;
+                    option.textContent = phone;
+                    if (phone === savedPhone) {
+                        option.selected = true;
+                    }
+                    phoneSelect.appendChild(option);
+                });
+                
+                phoneModal.style.display = 'flex';
+            });
+        }
+        
+        // Confirm phone button
+        document.getElementById('confirmPhone').addEventListener('click', function() {
+            const phone = phoneSelect.value;
+            if (phone) {
+                localStorage.setItem('userPhone', phone);
+                window.location.href = '/notifications/' + encodeURIComponent(phone);
+            }
+        });
+        
+        // Cancel button
+        document.getElementById('cancelModal').addEventListener('click', function() {
+            phoneModal.style.display = 'none';
+        });
+        
+        // Close on background click
+        phoneModal.addEventListener('click', function(e) {
+            if (e.target === phoneModal) {
+                phoneModal.style.display = 'none';
+            }
+        });
+    });
+    </script>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
